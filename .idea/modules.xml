@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/TabooLibAIRule.iml" filepath="$PROJECT_DIR$/TabooLibAIRule.iml" />
+      <module fileurl="file://$PROJECT_DIR$/taboolib-rule.iml" filepath="$PROJECT_DIR$/taboolib-rule.iml" />
     </modules>
   </component>
 </project>
