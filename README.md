@@ -1,8 +1,8 @@
-# TabooLibAIRule
+# taboolib-rule
 
 ## 项目简介
 
-TabooLibAIRule 是基于 TabooLib 框架的 Minecraft 插件开发文档项目，提供了完整的 TabooLib 各模块使用指南和最佳实践。
+taboolib-rule 是基于 TabooLib 框架的 Minecraft 插件开发文档项目，提供了完整的 TabooLib 各模块使用指南和最佳实践。
 
 ## 什么是 TabooLib
 
