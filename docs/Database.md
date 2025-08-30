@@ -187,12 +187,24 @@ fun databaseOperations() {
     val table = CustomTable.createTable(host)
     val dataSource = DatabaseManager.dataSource
     
-    // 查询操作
+    // 查询单条记录（推荐方式）
+    val result = table.select(dataSource) {
+        where { "player_uuid" eq playerUuid }
+    }.firstOrNull {
+        CustomData(
+            playerUuid = getString("player_uuid"),
+            data = getString("data"),
+            createTime = getLong("create_time")
+        )
+    }
+    
+    // 查询多条记录时使用 forEach
     table.select(dataSource) {
-        where("player_uuid", playerUuid)
+        where { "status" eq "active" }
     }.forEach { row ->
         val data = row["data"].asString()
         val createTime = row["create_time"].asLong()
+        // 处理每条记录
     }
     
     // 插入操作
@@ -206,12 +218,12 @@ fun databaseOperations() {
     table.update(dataSource) {
         set("data", "updated data")
         set("update_time", System.currentTimeMillis())
-        where("player_uuid", playerUuid)
+        where { "player_uuid" eq playerUuid }
     }
     
     // 删除操作
     table.delete(dataSource) {
-        where("player_uuid", playerUuid)
+        where { "player_uuid" eq playerUuid }
     }
 }
 ```
