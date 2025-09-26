@@ -620,3 +620,44 @@ DatabaseService.isMidBound(mid) { isBound ->
 5. **易于测试维护**：集中的数据库操作便于单元测试
 
 Database 模块为 TabooLib 插件提供了完整的数据持久化解决方案，通过 DatabaseService 统一服务层，实现了简单易用的数据库操作 API，是开发功能丰富插件的重要基础。
+
+## 实战示例：SQL 数据访问层
+
+`example/database/1` 提供了完整的 `Database` 接口与 `DatabaseSQL` 实现，可直接改造成插件的数据访问层。
+
+### 配置入口
+```yaml
+database:
+  use: SQL
+  sql:
+    host: 127.0.0.1
+    port: 3306
+    user: planner
+    password: secret
+    database: planners
+    table: planners_v2
+```
+`Database.option` 通过 `@ConfigNode("database")` 自动绑定配置，切换为 `LOCAL` 时可延伸实现本地存储。
+
+### 数据源与表结构
+```kotlin
+val host = HostSQL(Database.option.get().sql!!)
+val dataSource by unsafeLazy { host.createDataSource() }
+val tableUser = Table("${prefix}_user", host) {
+    add { id() }
+    add("user") { type(ColumnTypeSQL.VARCHAR, 36) }
+    add("route") { type(ColumnTypeSQL.INT) }
+}
+```
+在 `init` 块内调用 `table.createTable(dataSource)` 可确保首次启动自动建表；字段命名统一使用下划线，便于与 ORM/BI 工具对接。
+
+### 读写流程
+- `getPlayerProfile(player)`：先调用 `getUserId` 获取缓存 ID，再组合 `getRoute`、`getMetadataMap` 构建 `PlayerTemplate`，体现出拆分查询逻辑的可读性。
+- `updateMetadata(template, id, metadata)`：依据元数据状态选择 `delete` / `update` / `nullableInsert`，展示了 TabooLib `ActionFilterable` 的链式写法，便于扩展至其他表。
+- `createPlayerSkill` / `createPlayerJob`：使用 `CompletableFuture` 包裹异步插入结果，并在 `onFinally` 中读取自增 ID，适合在业务层串联 UI 回调。
+
+### 额外建议
+- 使用 `table.find` 快速判断记录是否存在，配合 `where { "id" eq value }` 保持 SQL 可读性。
+- 将 `cachedId` 映射保存在并发集合中，在高并发场景下减少重复查询。
+- 结合 Lang 模块，在数据层操作完成后调用 `sender.sendLang` 提示玩家，形成完整闭环。
+

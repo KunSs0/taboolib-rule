@@ -747,3 +747,46 @@ command("item") {
 7. **类型安全**: 正确处理类型转换，避免 ClassCastException
 
 TabooLib 的命令系统提供了强大而灵活的功能，通过合理使用DSL和注解两种方式，可以构建出功能完善、用户友好的命令系统。
+## 实战示例：玩家养成指令集
+
+示例 `example/command/1` 提供了一个 `planners` 顶级指令集合，集成 TabooLib Command 与核心业务逻辑。整体结构通过 `@CommandHeader` 声明入口，再以多个 `@CommandBody` 对应子功能，适合需要模块化命令树的插件。
+
+### 指令树设计
+- `planners main`：交由 `createHelper()` 自动生成帮助页，覆盖所有子指令。
+- `planners profile <player> <value>`：借助 `dynamic("player")` + `suggestPlayers()` 组合快速获取在线玩家，并在执行阶段通过 `ctx.player("player")` 获取 Bukkit Player 实例。
+- `planners skill`：结合 `Command.withImmutableSkill` / `Command.withPlayerSkill` 封装通用的 `subCommand` 模板，实现“先补全、后执行”的可复用写法。
+- `planners route`：示范了如何在子命令内部调用异步 API（`PlayerTemplateAPI.setPlayerRoute`），并在 `thenAccept` 中反馈结果。
+
+### 关键实现片段
+```kotlin
+@CommandHeader("planners", aliases = ["pl", "ps"], permission = "planners.command")
+object Command {
+
+    @CommandBody
+    val main = mainCommand { createHelper() }
+
+    @CommandBody
+    val skill = CommandSkill
+
+    @CommandBody
+    val profile = CommandProfile
+}
+```
+
+```kotlin
+fun with(block: ProxyCommandSender.(player: Player) -> Unit) = subCommand {
+    dynamic("player") {
+        suggestPlayers()
+        execute<ProxyCommandSender> { sender, ctx, _ ->
+            val player = ctx.player("player").castSafely<Player>() ?: return@execute
+            block(sender, player)
+        }
+    }
+}
+```
+
+### 实用技巧
+- 将常用查询逻辑（玩家选择、唯一 ID 补全）封装为高阶函数，复用性远高于重复编写 `dynamic`、`suggest` 结构。
+- 利用 `suggest {}` 与 `suggestion<ProxyCommandSender>` 支持异步计算，复杂枚举可提前缓存到内存提升体验。
+- 指令反馈统一调用 Lang 模块提供的 `player.sendLang`，避免硬编码消息，方便国际化维护。
+
